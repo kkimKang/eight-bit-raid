@@ -40,6 +40,7 @@ export function createGame(parent: string | HTMLElement): Phaser.Game {
     },
     input: {
       gamepad: true,
+      activePointers: 5,
     },
     scene: [
       BootScene,

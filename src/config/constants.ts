@@ -10,6 +10,8 @@ export const BASE_HEARTS = 4;
 export const HIT_IFRAME_MS = 900;
 export const STOMP_KNOCK = 280;
 export const PLAYER_MANA_MAX = 100;
+/** Multiplier applied to player shot lifespan and hitbox scale. */
+export const PLAYER_ATTACK_RANGE_MUL = 2;
 
 export const COLORS = {
   bg: 0x12121c,

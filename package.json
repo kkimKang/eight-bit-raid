@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --host",
+    "share": "npx --yes cloudflared tunnel --url http://127.0.0.1:5173"
   },
   "dependencies": {
     "phaser": "^3.87.0"

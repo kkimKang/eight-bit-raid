@@ -105,11 +105,7 @@ export class PlayerActor {
 
     this.sprite.setTexture("player");
     this.sprite.setTint(this.kit.color);
-    if (now < this.enlargedUntil) {
-      this.sprite.setScale(1.55);
-    } else {
-      this.sprite.setScale(1);
-    }
+    this.applyEnlargeVisual(now);
 
     if (now < this.stunUntil || now < this.hookUntil) {
       this.sprite.setAlpha(now % 120 < 60 ? 0.7 : 1);
@@ -215,6 +211,13 @@ export class PlayerActor {
       this.dead = true;
       this.sprite.setTexture("tomb");
     }
+  }
+
+  private applyEnlargeVisual(now: number): void {
+    const enlarged = now < this.enlargedUntil;
+    this.sprite.setScale(enlarged ? 1.55 : 1);
+    this.body.setSize(12, 16);
+    this.body.setOffset(2, 4);
   }
 
   spend(cost: number): boolean {
@@ -414,6 +417,9 @@ function fireC(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       lifespan: 2400,
       ownerSlot: player.slot,
     });
+    world.skillFlash(player.x + player.facing * 8, player.y - 12, player.kit.color);
+    world.skillSparks(player.x + player.facing * 14, player.y - 14, player.kit.color);
+    world.skillPop("MISSILE!");
     audio.skill();
     return;
   }
@@ -425,6 +431,9 @@ function fireC(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
     player.invulnUntil = world.now + 280;
     player.hookUntil = world.now + 220;
     player.body.setVelocity(dir.x * 420, dir.y * 420);
+    world.skillSlash(player.x, player.y, player.facing, player.kit.color);
+    world.skillRing(player.x, player.y - 8, player.kit.color);
+    world.skillPop("GRAPPLE!");
     audio.skill();
     return;
   }
@@ -448,6 +457,9 @@ function fireC(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
         ownerSlot: player.slot,
       });
     }
+    world.skillSparks(player.x, player.y - 10, player.kit.color);
+    world.skillRing(player.x, player.y - 8, player.kit.color);
+    world.skillPop("TRIPLE!");
     audio.skill();
     return;
   }
@@ -470,6 +482,9 @@ function fireC(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       pierce: true,
       ownerSlot: player.slot,
     });
+    world.skillLightning(player.x, player.y - 10, player.x + dir.x * 48, player.y - 10 + dir.y * 48, player.kit.color);
+    world.skillAura(player.sprite, player.kit.color, 260);
+    world.skillPop("RUSH!");
     audio.skill();
     return;
   }
@@ -493,6 +508,9 @@ function fireC(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       scale: 1.4,
     });
     wall.setTint(0x88c0ff);
+    world.skillSlam(player.x + player.facing * 18, player.y, player.kit.color);
+    world.skillFlash(player.x + player.facing * 18, player.y - 10, 0x88c0ff);
+    world.skillPop("WALL!");
     audio.skill();
     return;
   }
@@ -502,7 +520,17 @@ function fireC(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       return;
     }
     player.enlargedUntil = world.now + 8000;
-    player.invulnUntil = world.now + 400;
+    player.invulnUntil = world.now + 1200;
+    player.iframeUntil = world.now + 800;
+    player.body.setSize(12, 16);
+    player.body.setOffset(2, 4);
+    player.sprite.setScale(1.55);
+    player.sprite.y -= 10;
+    player.body.setVelocityY(Math.min(player.body.velocity.y, -80));
+    world.skillSlam(player.x, player.y, player.kit.color);
+    world.skillAura(player.sprite, player.kit.color, 800);
+    world.shake(0.005, 100);
+    world.skillPop("TAUNT!");
     audio.skill();
     return;
   }
@@ -517,6 +545,9 @@ function fireC(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
         player.healingDone += 1;
       }
     }
+    world.skillHeal(player.x, player.y - 12, player.kit.color);
+    world.skillRing(player.x, player.y - 8, player.kit.color);
+    world.skillPop("HEAL!");
     audio.skill();
     return;
   }
@@ -526,6 +557,7 @@ function fireC(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       return;
     }
     world.buffAtk(1.25, 8000);
+    world.skillPop("ATK UP!");
     audio.skill();
   }
 }
@@ -539,6 +571,9 @@ function fireS(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       return;
     }
     player.magnetUntil = world.now + 8000;
+    world.skillAura(player.sprite, player.kit.color, 800);
+    world.skillRing(player.x, player.y - 8, player.kit.color);
+    world.skillPop("MAGNET!");
     audio.skill();
     return;
   }
@@ -560,6 +595,8 @@ function fireS(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       tag: "blade-bomb",
       boom: dmg(player, world, 160),
     });
+    world.skillFlash(player.x + dir.x * 12, player.y - 8, player.kit.color);
+    world.skillPop("BOMB!");
     audio.skill();
     return;
   }
@@ -581,6 +618,9 @@ function fireS(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       homing: 3,
       ownerSlot: player.slot,
     });
+    world.skillRing(player.x, player.y - 10, player.kit.color);
+    world.skillSparks(player.x, player.y - 12, player.kit.color);
+    world.skillPop("HOMING!");
     audio.skill();
     return;
   }
@@ -602,6 +642,8 @@ function fireS(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       lifespan: 1200,
       ownerSlot: player.slot,
     });
+    world.skillLightning(player.x, player.y - 10, boss.x, boss.y, player.kit.color);
+    world.skillPop("CHAIN!");
     audio.skill();
     return;
   }
@@ -613,7 +655,10 @@ function fireS(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
     const ally = world.nearestAlly(player);
     if (ally) {
       ally.invulnUntil = world.now + 1800;
+      world.skillAura(ally.sprite, 0x88c0ff, 1800);
+      world.skillFlash(ally.x, ally.y - 10, 0x88c0ff);
     }
+    world.skillPop("SHIELD!");
     audio.skill();
     return;
   }
@@ -624,6 +669,9 @@ function fireS(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
     }
     world.eraseShotsNear(player.x, player.y, 80);
     world.shake(0.006, 120);
+    world.skillSlam(player.x, player.y, player.kit.color);
+    world.skillSparks(player.x, player.y - 6, player.kit.color);
+    world.skillPop("STOMP!");
     audio.stomp();
     return;
   }
@@ -633,6 +681,7 @@ function fireS(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       return;
     }
     world.buffCdr(0.72, 8000);
+    world.skillPop("CDR UP!");
     audio.skill();
     return;
   }
@@ -642,6 +691,7 @@ function fireS(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       return;
     }
     world.reviveNearest(player.slot, 2);
+    world.skillPop("REVIVE!");
     audio.skill();
   }
 }
@@ -656,7 +706,11 @@ function fireD(player: PlayerActor, world: CombatWorld, _input: PlayerInput): vo
     player.invulnUntil = world.now + 1500;
     player.hookUntil = world.now + 400;
     const boss = world.bossPos();
+    world.skillWarp(player.x, player.y - 8, player.kit.color);
     player.sprite.setPosition(Phaser.Math.Clamp(boss.x - player.facing * 50, 30, 610), Math.max(80, boss.y - 20));
+    world.skillWarp(player.x, player.y - 8, player.kit.color);
+    world.skillAura(player.sprite, player.kit.color, 1500);
+    world.skillPop("BLINK!");
     audio.skill();
     return;
   }
@@ -666,9 +720,16 @@ function fireD(player: PlayerActor, world: CombatWorld, _input: PlayerInput): vo
       return;
     }
     player.invulnUntil = world.now + (id === "shade" ? 1000 : 2000);
+    world.skillAura(player.sprite, player.kit.color, id === "shade" ? 1000 : 2000);
+    world.skillRing(player.x, player.y - 8, player.kit.color);
     if (id === "brick") {
       world.eraseShotsNear(player.x, player.y, 90);
+      world.skillSlam(player.x, player.y, player.kit.color);
     }
+    if (id === "shade") {
+      world.skillFlash(player.x, player.y - 8, player.kit.color);
+    }
+    world.skillPop("GUARD!");
     audio.skill();
     return;
   }
@@ -678,6 +739,7 @@ function fireD(player: PlayerActor, world: CombatWorld, _input: PlayerInput): vo
       return;
     }
     world.grantPartyInvuln(2000);
+    world.skillPop("STAR!");
     audio.skill();
     return;
   }
@@ -688,6 +750,7 @@ function fireD(player: PlayerActor, world: CombatWorld, _input: PlayerInput): vo
     }
     world.reviveNearest(player.slot, 2);
     world.heal(player.slot, 1);
+    world.skillPop("HYMN!");
     audio.skill();
   }
 }

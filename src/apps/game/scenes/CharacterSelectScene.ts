@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { KITS } from "../../../features/characters/kits";
+import { KITS, kitById } from "../../../features/characters/kits";
 import { audio } from "../../../shared/audio";
 import { addPlayer, getRun, removeLastPlayer } from "../../../shared/session";
 import type { CharacterId } from "../../../shared/types";
@@ -42,7 +42,7 @@ export class CharacterSelectScene extends Phaser.Scene {
     run.players.forEach((p, i) => {
       addText(this, 80 + i * 150, 72, `P${i + 1}  ${p.characterId.toUpperCase()}`, {
         fontSize: "13px",
-        color: "#ffd24a",
+        color: run.selectedSlot === i ? "#ffd24a" : "#c8c4d4",
       });
     });
 
@@ -50,19 +50,34 @@ export class CharacterSelectScene extends Phaser.Scene {
       const col = i % 4;
       const row = Math.floor(i / 4);
       const x = 80 + col * 150;
-      const y = 110 + row * 110;
-      const img = this.add.image(x, y + 8, "player").setTint(kit.color).setInteractive({ useHandCursor: true });
-      addText(this, x + 18, y - 8, kit.name, { fontSize: "12px", color: "#f4f0e6" });
-      addText(this, x + 18, y + 8, kit.roleLabel, { fontSize: "12px", color: "#8a8494" });
-      addText(this, x, y + 36, kit.blurb, { fontSize: "12px", color: "#6a6474", wordWrap: { width: 140 } });
+      const y = 100 + row * 88;
+      const selected = run.players[run.selectedSlot]?.characterId === kit.id;
+      const img = this.add.image(x, y + 4, "player").setTint(kit.color).setInteractive({ useHandCursor: true });
+      if (selected) {
+        img.setScale(1.15);
+      }
+      addText(this, x + 18, y - 10, kit.name, { fontSize: "12px", color: "#f4f0e6" });
+      addText(this, x + 18, y + 4, kit.roleLabel, { fontSize: "11px", color: "#8a8494" });
+      addText(this, x, y + 22, kit.blurb, { fontSize: "10px", color: "#6a6474", wordWrap: { width: 132 } });
       const pick = () => {
         run.players[run.selectedSlot].characterId = kit.id as CharacterId;
         audio.hit();
         this.scene.restart();
       };
       img.on("pointerdown", pick);
-      addButton(this, x + 18, y + 22, "선택", pick, { fontSize: "12px", color: "#ffd24a" });
+      addButton(this, x + 18, y + 16, "선택", pick, { fontSize: "11px", color: "#ffd24a" });
     });
+
+    const active = kitById(run.players[run.selectedSlot].characterId);
+    this.add.rectangle(320, 292, 600, 96, 0x1a1420, 0.85).setStrokeStyle(1, 0x3d3548);
+    addText(this, 48, 252, `P${run.selectedSlot + 1}  ${active.name}`, {
+      fontSize: "14px",
+      color: "#ffd24a",
+    });
+    addText(this, 48, 270, active.attackDesc, { fontSize: "11px", color: "#c8c4d4", wordWrap: { width: 560 } });
+    addText(this, 48, 286, active.skillC, { fontSize: "11px", color: "#9a94a8", wordWrap: { width: 560 } });
+    addText(this, 48, 302, active.skillS, { fontSize: "11px", color: "#9a94a8", wordWrap: { width: 560 } });
+    addText(this, 48, 318, active.skillD, { fontSize: "11px", color: "#9a94a8", wordWrap: { width: 560 } });
 
     addText(this, 20, 330, "슬롯: 1-4", { fontSize: "12px", color: "#8a8494" });
     [1, 2, 3, 4].forEach((n) => {

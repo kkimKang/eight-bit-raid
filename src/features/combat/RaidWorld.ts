@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { HEIGHT, WIDTH } from "../../config/constants";
+import { HEIGHT, PLAYER_ATTACK_RANGE_MUL, WIDTH } from "../../config/constants";
 import { PLAYER_HP_SCALE, difficultyDef, type DifficultyId } from "../../config/difficulties";
 import { audio } from "../../shared/audio";
 import type { DamageType, PlatformRect } from "../../shared/types";
@@ -8,6 +8,17 @@ import { bossById } from "../bosses/roster";
 import { BossActor } from "../bosses/BossActor";
 import { PlayerActor } from "./PlayerActor";
 import type { CombatWorld, ShotOpts } from "./worldTypes";
+import {
+  burstRing,
+  flashDisc,
+  followAura,
+  groundSlam,
+  healRise,
+  lightningBolt,
+  slashArc,
+  sparkBurst,
+  warpFlash,
+} from "./skillFx";
 
 export class RaidWorld implements CombatWorld {
   now = 0;
@@ -229,7 +240,16 @@ export class RaidWorld implements CombatWorld {
   }
 
   spawnPlayerShot(opts: ShotOpts): Phaser.Physics.Arcade.Sprite {
-    return this.spawnShot(this.playerShots, opts, false);
+    const mul = PLAYER_ATTACK_RANGE_MUL;
+    return this.spawnShot(
+      this.playerShots,
+      {
+        ...opts,
+        lifespan: (opts.lifespan ?? 2500) * mul,
+        scale: (opts.scale ?? 1) * mul,
+      },
+      false,
+    );
   }
 
   spawnEnemyShot(opts: ShotOpts): Phaser.Physics.Arcade.Sprite {
@@ -249,6 +269,7 @@ export class RaidWorld implements CombatWorld {
     }
     const body = s.body as Phaser.Physics.Arcade.Body;
     body.allowGravity = false;
+    body.updateFromGameObject();
     s.setData("damage", opts.damage);
     s.setData("damageType", opts.damageType);
     s.setData("erasable", opts.erasable !== false && enemy);
@@ -307,6 +328,11 @@ export class RaidWorld implements CombatWorld {
   grantPartyInvuln(ms: number): void {
     this.partyInvulnUntil = this.now + ms;
     this.banner("STAR!");
+    for (const p of this.living()) {
+      this.skillAura(p.sprite, 0xffd24a, ms);
+      this.skillSparks(p.x, p.y - 10, 0xffd24a);
+    }
+    this.skillFlash(WIDTH / 2, HEIGHT / 2, 0xffd24a);
   }
 
   heal(slot: number, amount: number): void {
@@ -315,6 +341,7 @@ export class RaidWorld implements CombatWorld {
       return;
     }
     p.hearts = Math.min(p.maxHearts, p.hearts + amount);
+    this.skillHeal(p.x, p.y - 12, p.kit.color);
   }
 
   reviveNearest(fromSlot: number, hearts: number): void {
@@ -335,16 +362,26 @@ export class RaidWorld implements CombatWorld {
     p.sprite.setTexture("player");
     p.sprite.setTint(p.kit.color);
     this.deadOnce.delete(p.slot);
+    this.skillWarp(p.x, p.y - 8, p.kit.color);
+    this.skillHeal(p.x, p.y - 12, p.kit.color);
   }
 
   buffAtk(mul: number, ms: number): void {
     this.atkBuffMul = mul;
     this.atkBuffUntil = this.now + ms;
+    for (const p of this.living()) {
+      this.skillSparks(p.x, p.y - 10, 0x2ecc71);
+      this.skillAura(p.sprite, 0x2ecc71, Math.min(ms, 1200));
+    }
   }
 
   buffCdr(mul: number, ms: number): void {
     this.cdrBuffMul = mul;
     this.cdrBuffUntil = this.now + ms;
+    for (const p of this.living()) {
+      this.skillRing(p.x, p.y - 8, 0x4aa3ff);
+      this.skillAura(p.sprite, 0x4aa3ff, Math.min(ms, 1200));
+    }
   }
 
   living(): PlayerActor[] {
@@ -404,6 +441,60 @@ export class RaidWorld implements CombatWorld {
       delay: 700,
       duration: 400,
       onComplete: () => this.bannerText?.destroy(),
+    });
+  }
+
+  skillRing(x: number, y: number, color: number): void {
+    burstRing(this.scene, x, y, color);
+  }
+
+  skillFlash(x: number, y: number, color: number): void {
+    flashDisc(this.scene, x, y, color);
+  }
+
+  skillSparks(x: number, y: number, color: number): void {
+    sparkBurst(this.scene, x, y, color);
+  }
+
+  skillWarp(x: number, y: number, color: number): void {
+    warpFlash(this.scene, x, y, color);
+  }
+
+  skillAura(sprite: Phaser.Physics.Arcade.Sprite, color: number, ms: number): void {
+    followAura(this.scene, sprite, color, ms);
+  }
+
+  skillSlash(x: number, y: number, facing: number, color: number): void {
+    slashArc(this.scene, x, y, facing, color);
+  }
+
+  skillSlam(x: number, y: number, color: number): void {
+    groundSlam(this.scene, x, y, color);
+  }
+
+  skillHeal(x: number, y: number, color: number): void {
+    healRise(this.scene, x, y, color);
+  }
+
+  skillLightning(x1: number, y1: number, x2: number, y2: number, color: number): void {
+    lightningBolt(this.scene, x1, y1, x2, y2, color);
+  }
+
+  skillPop(text: string, color = "#ffd24a"): void {
+    const pop = addText(this.scene, WIDTH / 2, 52, text, {
+      fontSize: "16px",
+      color,
+      stroke: "#1a1420",
+      strokeThickness: 3,
+    })
+      .setOrigin(0.5)
+      .setDepth(21);
+    this.scene.tweens.add({
+      targets: pop,
+      y: 40,
+      alpha: 0,
+      duration: 650,
+      onComplete: () => pop.destroy(),
     });
   }
 
@@ -467,6 +558,8 @@ export class RaidWorld implements CombatWorld {
         const body = s.body as Phaser.Physics.Arcade.Body;
         if (this.now > Number(s.getData("lifespan"))) {
           if (s.getData("tag") === "blade-bomb") {
+            this.skillFlash(s.x, s.y, 0xffd24a);
+            this.shake(0.008, 140);
             explosions.push({
               x: s.x,
               y: s.y,

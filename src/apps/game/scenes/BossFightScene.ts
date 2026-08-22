@@ -3,10 +3,12 @@ import { HEIGHT, WIDTH } from "../../../config/constants";
 import { makePlayer } from "../../../features/combat/PlayerActor";
 import { RaidWorld } from "../../../features/combat/RaidWorld";
 import { FightHud } from "../../../features/hud/FightHud";
+import { TouchControls } from "../../../features/hud/TouchControls";
 import { audio } from "../../../shared/audio";
+import { isHandheld } from "../../../shared/device";
 import { InputHub } from "../../../shared/input";
 import { currentBossId, getRun } from "../../../shared/session";
-import { addText, fillBg } from "../../../shared/ui";
+import { addButton, addText, fillBg } from "../../../shared/ui";
 import { rankForDeaths } from "../../../config/upgrades";
 
 export class BossFightScene extends Phaser.Scene {
@@ -32,11 +34,21 @@ export class BossFightScene extends Phaser.Scene {
       makePlayer(this, 120 + i * 40, 300, i, p.characterId, p.upgrades),
     );
     this.world.attachPlayers(players);
-    this.inputHub = new InputHub(this);
+    const touch = isHandheld() ? new TouchControls(this) : undefined;
+    this.inputHub = new InputHub(this, touch);
     this.hud = new FightHud(this, this.world);
     this.closing = false;
 
-    addText(this, 8, 44, "ESC 포기", { fontSize: "12px", color: "#5a5464" }).setDepth(16);
+    if (isHandheld()) {
+      addButton(this, WIDTH - 8, 44, "포기", () => this.finish("lose"), {
+        fontSize: "12px",
+        color: "#8a8494",
+      })
+        .setOrigin(1, 0)
+        .setDepth(16);
+    } else {
+      addText(this, 8, 44, "ESC 포기", { fontSize: "12px", color: "#5a5464" }).setDepth(16);
+    }
 
     this.input.keyboard?.on("keydown-M", () => {
       const muted = audio.toggleMute();

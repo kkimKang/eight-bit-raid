@@ -47,4 +47,14 @@ export interface CombatWorld {
   bossPos(): { x: number; y: number };
   shake(intensity: number, ms: number): void;
   countShots(tag: string): number;
+  skillRing(x: number, y: number, color: number): void;
+  skillFlash(x: number, y: number, color: number): void;
+  skillSparks(x: number, y: number, color: number): void;
+  skillWarp(x: number, y: number, color: number): void;
+  skillAura(sprite: Phaser.Physics.Arcade.Sprite, color: number, ms: number): void;
+  skillSlash(x: number, y: number, facing: number, color: number): void;
+  skillSlam(x: number, y: number, color: number): void;
+  skillHeal(x: number, y: number, color: number): void;
+  skillLightning(x1: number, y1: number, x2: number, y2: number, color: number): void;
+  skillPop(text: string, color?: string): void;
 }

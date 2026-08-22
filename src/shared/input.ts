@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { KEY_BINDS } from "../config/keys";
+import type { TouchControls } from "../features/hud/TouchControls";
 
 export interface PlayerInput {
   left: boolean;
@@ -35,7 +36,10 @@ export class InputHub {
   private maps: KeyMap[] = [];
   private prev: Array<[boolean, boolean, boolean, boolean, boolean]> = [];
 
-  constructor(private scene: Phaser.Scene) {
+  constructor(
+    private scene: Phaser.Scene,
+    private touch?: TouchControls,
+  ) {
     const kb = scene.input.keyboard;
     if (!kb) {
       return;
@@ -51,16 +55,17 @@ export class InputHub {
     const pad = padIndex >= 0 ? this.scene.input.gamepad?.getPad(padIndex) : undefined;
     const stickX = pad?.leftStick?.x ?? 0;
     const stickY = pad?.leftStick?.y ?? 0;
+    const touch = slot === 0 ? this.touch?.sample() : undefined;
 
-    const left = Boolean(kb?.left.isDown || pad?.left || stickX < -0.35);
-    const right = Boolean(kb?.right.isDown || pad?.right || stickX > 0.35);
-    const up = Boolean(kb?.up.isDown || pad?.up || stickY < -0.35);
-    const down = Boolean(kb?.down.isDown || pad?.down || stickY > 0.35);
-    const jump = Boolean(kb?.jump.isDown || pad?.A);
-    const attack = Boolean(kb?.attack.isDown || pad?.X);
-    const skillC = Boolean(kb?.skillC.isDown || pad?.Y);
-    const skillS = Boolean(kb?.skillS.isDown || pad?.B);
-    const skillD = Boolean(kb?.skillD.isDown || (pad && pad.R1 > 0.4));
+    const left = Boolean(kb?.left.isDown || pad?.left || stickX < -0.35 || touch?.left);
+    const right = Boolean(kb?.right.isDown || pad?.right || stickX > 0.35 || touch?.right);
+    const up = Boolean(kb?.up.isDown || pad?.up || stickY < -0.35 || touch?.up);
+    const down = Boolean(kb?.down.isDown || pad?.down || stickY > 0.35 || touch?.down);
+    const jump = Boolean(kb?.jump.isDown || pad?.A || touch?.jump);
+    const attack = Boolean(kb?.attack.isDown || pad?.X || touch?.attack);
+    const skillC = Boolean(kb?.skillC.isDown || pad?.Y || touch?.skillC);
+    const skillS = Boolean(kb?.skillS.isDown || pad?.B || touch?.skillS);
+    const skillD = Boolean(kb?.skillD.isDown || (pad && pad.R1 > 0.4) || touch?.skillD);
 
     const prev = this.prev[slot] ?? [false, false, false, false, false];
     this.prev[slot] = [jump, attack, skillC, skillS, skillD];
