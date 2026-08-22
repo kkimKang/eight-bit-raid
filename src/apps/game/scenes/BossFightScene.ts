@@ -1,0 +1,100 @@
+import Phaser from "phaser";
+import { HEIGHT, WIDTH } from "../../../config/constants";
+import { makePlayer } from "../../../features/combat/PlayerActor";
+import { RaidWorld } from "../../../features/combat/RaidWorld";
+import { FightHud } from "../../../features/hud/FightHud";
+import { audio } from "../../../shared/audio";
+import { InputHub } from "../../../shared/input";
+import { currentBossId, getRun } from "../../../shared/session";
+import { addText, fillBg } from "../../../shared/ui";
+import { rankForDeaths } from "../../../config/upgrades";
+
+export class BossFightScene extends Phaser.Scene {
+  private world!: RaidWorld;
+  private inputHub!: InputHub;
+  private hud!: FightHud;
+  private closing = false;
+
+  constructor() {
+    super("BossFightScene");
+  }
+
+  create(): void {
+    this.input.keyboard?.removeAllListeners();
+    fillBg(this, 0x161422);
+    this.add.rectangle(320, 344, 640, 32, 0x0c0c14, 0.5);
+    const run = getRun();
+    run.roundDeaths = 0;
+    run.fightStartedAt = this.time.now;
+    this.physics.world.setBounds(0, -24, WIDTH, HEIGHT + 96);
+    this.world = new RaidWorld(this, run.difficulty, run.players.length, currentBossId());
+    const players = run.players.map((p, i) =>
+      makePlayer(this, 120 + i * 40, 300, i, p.characterId, p.upgrades),
+    );
+    this.world.attachPlayers(players);
+    this.inputHub = new InputHub(this);
+    this.hud = new FightHud(this, this.world);
+    this.closing = false;
+
+    addText(this, 8, 44, "ESC 포기", { fontSize: "12px", color: "#5a5464" }).setDepth(16);
+
+    this.input.keyboard?.on("keydown-M", () => {
+      const muted = audio.toggleMute();
+      this.world.banner(muted ? "MUTE" : "BGM/SFX ON");
+    });
+    this.input.keyboard?.on("keydown-ESC", () => {
+      this.finish("lose");
+    });
+    if (import.meta.env.DEV) {
+      this.input.keyboard?.on("keydown-F10", () => {
+        this.world.boss.hp = 0;
+        this.world.boss.dead = true;
+        this.world.ended = "win";
+      });
+    }
+  }
+
+  update(_time: number, delta: number): void {
+    if (!this.world || this.closing) {
+      return;
+    }
+    const dt = Math.min(delta, 34);
+    for (const p of this.world.players) {
+      p.update(this.world, this.inputHub.sample(p.slot), dt);
+    }
+    this.world.update(dt);
+    this.hud.update(this.world);
+    if (this.world.ended) {
+      this.finish(this.world.ended);
+    }
+  }
+
+  private finish(kind: "win" | "lose"): void {
+    if (this.closing) {
+      return;
+    }
+    this.closing = true;
+    const run = getRun();
+    const deaths = this.world.roundDeaths;
+    const { rank, gold } = rankForDeaths(deaths);
+    const wiped = kind === "lose";
+    if (wiped) {
+      audio.lose();
+    }
+    run.lastResult = {
+      bossId: this.world.boss.def.id,
+      bossName: this.world.boss.def.name,
+      deaths,
+      rank: wiped ? "F" : rank,
+      gold: wiped ? 0 : gold,
+      wiped,
+      timeMs: this.world.elapsed,
+    };
+    if (!wiped) {
+      for (const p of run.players) {
+        p.gold += gold;
+      }
+    }
+    this.time.delayedCall(1200, () => this.scene.start("ResultScene"));
+  }
+}
