@@ -1,11 +1,11 @@
 # 8-BIT RAID — Project Status
 
 ## Last Updated
-2026-08-23 08:55
+2026-08-23 09:40
 
 ## Completed Work
-- 이 PC Git 계정 `kkimKang`으로 비공개 저장소 생성 및 push: https://github.com/kkimKang/eight-bit-raid (브랜치 `cursor/boss-fix-and-balance-tweaks`, 로컬 origin도 이 주소)
-- 이전 시도: https://github.com/Productitivity/eight-bit-raid-private (MCP `Productitivity` 계정). 공개 `Productitivity/eight-bit-raid` Pages는 이 PC에서 `kkimKang` 권한으로 push가 막혀 미완
+- GitHub Pages 상시 배포 완료: https://kkimkang.github.io/eight-bit-raid/ (`main` push 시 Actions 자동 배포, PC 꺼져 있어도 접속 가능)
+- 저장소를 public으로 전환하고 `main` 브랜치·Pages 배포 브랜치 정책 설정
 - 같은 와이파이가 아니어도 접속할 수 있게 Cloudflare Tunnel 공개 URL 지원 (`npm run share`)
 - Vite가 터널 호스트를 허용하도록 `allowedHosts: true` 설정
 - 휴대폰/태블릿에서만 가상 조이스틱(좌하단)과 점프·평타·C/S/D 버튼(우하단) 표시. 컴퓨터는 기존 키보드 조작 유지
@@ -37,8 +37,6 @@
 - 저작권: 원작 유즈맵의 역할/루프만 호러지. 타사 IP 이름·도트·BGM 미사용
 
 ## Next Steps
-- GitHub Pages로 외부 공유하려면 Free 플랜에서는 저장소를 public으로 바꾸거나 Pages 플랜을 확인
-- 아직 커밋되지 않은 로컬 변경(워크플로/`docs/PROJECT_STATUS.md`)은 다음 커밋 때 반영
 - `???` / 엑스트라 보스, Joke·Kaizo, 온라인 매칭, 루피·스킨은 이후 과제로 유지
 - 실기 플레이로 보스 HP·패턴 속도 밸런스 조정
 - 외부 도트/처프 트랙이 필요하면 `assets/`에 오리지널 에셋만 추가
