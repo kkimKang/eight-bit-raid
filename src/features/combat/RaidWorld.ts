@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { HEIGHT, PLAYER_ATTACK_RANGE_MUL, WIDTH } from "../../config/constants";
+import { GROUND_TOP, HEIGHT, PLAYER_ATTACK_RANGE_MUL, WIDTH } from "../../config/constants";
 import { PLAYER_HP_SCALE, difficultyDef, type DifficultyId } from "../../config/difficulties";
 import { audio } from "../../shared/audio";
 import type { DamageType, PlatformRect } from "../../shared/types";
@@ -143,6 +143,10 @@ export class RaidWorld implements CombatWorld {
     if (!s || s === this.boss.sprite || !s.active || s.getData("spent")) {
       return;
     }
+    if (s.getData("tag") === "blade-bomb") {
+      this.detonateBladeBomb(s);
+      return;
+    }
     s.setData("spent", true);
     const owner = Number(s.getData("ownerSlot") ?? 0);
     if (this.boss.counterUntil > this.now) {
@@ -168,6 +172,37 @@ export class RaidWorld implements CombatWorld {
     if (!s.getData("pierce")) {
       this.retireShot(s);
     }
+  }
+
+  private bladeBombExplosionOpts(s: Phaser.Physics.Arcade.Sprite): ShotOpts {
+    return {
+      x: s.x,
+      y: s.y,
+      vx: 0,
+      vy: 0,
+      damage: Number(s.getData("boom") ?? 160),
+      damageType: "physical",
+      texture: "bomb",
+      scale: 2.2,
+      lifespan: 180,
+      pierce: true,
+      ownerSlot: Number(s.getData("ownerSlot") ?? 0),
+    };
+  }
+
+  private detonateBladeBomb(s: Phaser.Physics.Arcade.Sprite, queued?: ShotOpts[]): void {
+    if (!s.active || s.getData("tag") !== "blade-bomb" || s.getData("spent")) {
+      return;
+    }
+    this.skillFlash(s.x, s.y, 0xffd24a);
+    this.shake(0.008, 140);
+    const opts = this.bladeBombExplosionOpts(s);
+    if (queued) {
+      queued.push(opts);
+    } else {
+      this.spawnPlayerShot(opts);
+    }
+    this.retireShot(s);
   }
 
   private retireShot(s: Phaser.Physics.Arcade.Sprite): void {
@@ -223,6 +258,33 @@ export class RaidWorld implements CombatWorld {
     this.boss.sprite.setPosition(320, 260);
     this.boss.sprite.setScale(1);
     this.boss.sprite.setVisible(true);
+  }
+
+  snapPlayersToNearestPlatforms(): void {
+    const plats = this.platforms.getChildren() as Phaser.Physics.Arcade.Sprite[];
+    if (!plats.length) {
+      return;
+    }
+    const standAbove = GROUND_TOP - 300;
+    for (const p of this.living()) {
+      let best = plats[0]!;
+      let bestDist = Infinity;
+      for (const plat of plats) {
+        const dist = Phaser.Math.Distance.Between(p.x, p.y, plat.x, plat.y);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = plat;
+        }
+      }
+      const top = best.y - best.displayHeight / 2;
+      const margin = 14;
+      const minX = best.x - best.displayWidth / 2 + margin;
+      const maxX = best.x + best.displayWidth / 2 - margin;
+      const x = Phaser.Math.Clamp(p.x, minX, maxX);
+      p.sprite.setPosition(x, top - standAbove);
+      p.body.setVelocity(0, 0);
+      p.body.reset(p.sprite.x, p.sprite.y);
+    }
   }
 
   smashPlatformsNear(x: number, y: number, radius: number): void {
@@ -558,23 +620,10 @@ export class RaidWorld implements CombatWorld {
         const body = s.body as Phaser.Physics.Arcade.Body;
         if (this.now > Number(s.getData("lifespan"))) {
           if (s.getData("tag") === "blade-bomb") {
-            this.skillFlash(s.x, s.y, 0xffd24a);
-            this.shake(0.008, 140);
-            explosions.push({
-              x: s.x,
-              y: s.y,
-              vx: 0,
-              vy: 0,
-              damage: Number(s.getData("boom") ?? 160),
-              damageType: "physical",
-              texture: "bomb",
-              scale: 2.2,
-              lifespan: 180,
-              pierce: true,
-              ownerSlot: Number(s.getData("ownerSlot") ?? 0),
-            });
+            this.detonateBladeBomb(s, explosions);
+          } else {
+            kill.push(s);
           }
-          kill.push(s);
           return true;
         }
         if (s.x < -40 || s.x > WIDTH + 40 || s.y < -40 || s.y > HEIGHT + 40) {

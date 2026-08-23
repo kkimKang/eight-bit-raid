@@ -722,6 +722,7 @@ const ultimates: Record<BossId, (world: RaidWorld, boss: BossActor) => Pattern> 
       { x: 430, y: 230, w: 90, h: 14 },
       { x: 540, y: 280, w: 80, h: 14 },
     ]);
+    world.snapPlayersToNearestPlatforms();
     boss.sprite.setScale(2.2);
     boss.sprite.setPosition(-60, 220);
     return timed(7000, (_t, w, b) => {

@@ -256,23 +256,36 @@ function dmg(player: PlayerActor, world: CombatWorld, base: number): number {
   return base * player.atkMul(world);
 }
 
+function aimVelocity(input: PlayerInput, facing: number, speed: number): { dir: { x: number; y: number }; vx: number; vy: number } {
+  const dir = aimDir(input, facing);
+  return { dir, vx: dir.x * speed, vy: dir.y * speed };
+}
+
+function spawnFromAim(player: PlayerActor, dir: { x: number; y: number }, reach: number): { x: number; y: number } {
+  return {
+    x: player.x + dir.x * reach,
+    y: player.y - 8 + dir.y * reach,
+  };
+}
+
 function fireX(player: PlayerActor, world: CombatWorld, input: PlayerInput): void {
   if (player.xReady > 0 && player.kit.id !== "blade") {
     return;
   }
   const id = player.kit.id;
-  const dir = aimDir(input, player.facing);
   player.xReady = player.kit.xInterval * player.cdMul(world);
 
   if (id === "buster") {
     if (world.countShots(`buster-${player.slot}`) >= 3) {
       return;
     }
+    const buster = aimVelocity(input, player.facing, 260);
+    const busterSpawn = spawnFromAim(player, buster.dir, 10);
     world.spawnPlayerShot({
-      x: player.x + player.facing * 10,
-      y: player.y - 10,
-      vx: player.facing * 260,
-      vy: 0,
+      x: busterSpawn.x,
+      y: busterSpawn.y,
+      vx: buster.vx,
+      vy: buster.vy,
       damage: dmg(player, world, player.magnetUntil > world.now ? 10 : 8),
       damageType: "physical",
       texture: "pellet",
@@ -286,11 +299,15 @@ function fireX(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
   }
 
   if (id === "blade") {
+    const slashVel = aimVelocity(input, player.facing, 40);
+    const pelletVel = aimVelocity(input, player.facing, 280);
+    const slashSpawn = spawnFromAim(player, slashVel.dir, 16);
+    const pelletSpawn = spawnFromAim(player, pelletVel.dir, 12);
     const slash = world.spawnPlayerShot({
-      x: player.x + player.facing * 16,
-      y: player.y - 8,
-      vx: player.facing * 40,
-      vy: 0,
+      x: slashSpawn.x,
+      y: slashSpawn.y,
+      vx: slashVel.vx,
+      vy: slashVel.vy,
       damage: dmg(player, world, 22),
       damageType: "physical",
       texture: "slash",
@@ -299,12 +316,12 @@ function fireX(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
       ownerSlot: player.slot,
       scale: 1,
     });
-    slash.setFlipX(player.facing < 0);
+    slash.setFlipX(slashVel.dir.x < 0);
     world.spawnPlayerShot({
-      x: player.x + player.facing * 12,
-      y: player.y - 10,
-      vx: player.facing * 280,
-      vy: 0,
+      x: pelletSpawn.x,
+      y: pelletSpawn.y,
+      vx: pelletVel.vx,
+      vy: pelletVel.vy,
       damage: dmg(player, world, 12),
       damageType: "physical",
       texture: "pellet",
@@ -317,11 +334,13 @@ function fireX(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
   }
 
   if (id === "shade") {
+    const shot = aimVelocity(input, player.facing, 240);
+    const pos = spawnFromAim(player, shot.dir, 8);
     world.spawnPlayerShot({
-      x: player.x + player.facing * 8,
-      y: player.y - 10,
-      vx: player.facing * 240,
-      vy: 0,
+      x: pos.x,
+      y: pos.y,
+      vx: shot.vx,
+      vy: shot.vy,
       damage: dmg(player, world, 14),
       damageType: "magic",
       texture: "orb",
@@ -333,11 +352,13 @@ function fireX(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
   }
 
   if (id === "bolt") {
+    const shot = aimVelocity(input, player.facing, 300);
+    const pos = spawnFromAim(player, shot.dir, 10);
     world.spawnPlayerShot({
-      x: player.x + dir.x * 10,
-      y: player.y - 10 + dir.y * 6,
-      vx: dir.x * 300,
-      vy: dir.y * 300,
+      x: pos.x,
+      y: pos.y,
+      vx: shot.vx,
+      vy: shot.vy,
       damage: dmg(player, world, 16),
       damageType: "magic",
       texture: "bolt",
@@ -349,11 +370,13 @@ function fireX(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
   }
 
   if (id === "brick" || id === "taunt") {
+    const shot = aimVelocity(input, player.facing, 80);
+    const pos = spawnFromAim(player, shot.dir, 14);
     world.spawnPlayerShot({
-      x: player.x + player.facing * 14,
-      y: player.y - 8,
-      vx: player.facing * 80,
-      vy: 0,
+      x: pos.x,
+      y: pos.y,
+      vx: shot.vx,
+      vy: shot.vy,
       damage: dmg(player, world, id === "taunt" ? 18 : 16),
       damageType: "physical",
       texture: "hammer",
@@ -365,11 +388,13 @@ function fireX(player: PlayerActor, world: CombatWorld, input: PlayerInput): voi
     return;
   }
 
+  const shot = aimVelocity(input, player.facing, 220);
+  const pos = spawnFromAim(player, shot.dir, 8);
   world.spawnPlayerShot({
-    x: player.x + player.facing * 8,
-    y: player.y - 10,
-    vx: player.facing * 220,
-    vy: 0,
+    x: pos.x,
+    y: pos.y,
+    vx: shot.vx,
+    vy: shot.vy,
     damage: dmg(player, world, 9),
     damageType: player.kit.damageType,
     texture: id === "bloom" ? "star" : "pellet",
