@@ -3,6 +3,7 @@ import { HEIGHT, WIDTH } from "../../../config/constants";
 import { makePlayer } from "../../../features/combat/PlayerActor";
 import { RaidWorld } from "../../../features/combat/RaidWorld";
 import { FightHud } from "../../../features/hud/FightHud";
+import { PauseOverlay } from "../../../features/hud/PauseOverlay";
 import { TouchControls } from "../../../features/hud/TouchControls";
 import { audio } from "../../../shared/audio";
 import { isHandheld } from "../../../shared/device";
@@ -15,7 +16,9 @@ export class BossFightScene extends Phaser.Scene {
   private world!: RaidWorld;
   private inputHub!: InputHub;
   private hud!: FightHud;
+  private pauseOverlay!: PauseOverlay;
   private closing = false;
+  private paused = false;
 
   constructor() {
     super("BossFightScene");
@@ -37,17 +40,23 @@ export class BossFightScene extends Phaser.Scene {
     const touch = isHandheld() ? new TouchControls(this) : undefined;
     this.inputHub = new InputHub(this, touch);
     this.hud = new FightHud(this, this.world);
+    this.pauseOverlay = new PauseOverlay(
+      this,
+      () => this.setPaused(false),
+      () => this.finish("lose"),
+    );
     this.closing = false;
+    this.paused = false;
 
     if (isHandheld()) {
-      addButton(this, WIDTH - 8, 44, "포기", () => this.finish("lose"), {
+      addButton(this, WIDTH - 8, 44, "일시정지", () => this.togglePause(), {
         fontSize: "12px",
         color: "#8a8494",
       })
         .setOrigin(1, 0)
         .setDepth(16);
     } else {
-      addText(this, 8, 44, "ESC 포기", { fontSize: "12px", color: "#5a5464" }).setDepth(16);
+      addText(this, 8, 44, "P / ESC 일시정지", { fontSize: "12px", color: "#5a5464" }).setDepth(16);
     }
 
     this.input.keyboard?.on("keydown-M", () => {
@@ -55,10 +64,16 @@ export class BossFightScene extends Phaser.Scene {
       this.world.banner(muted ? "MUTE" : "BGM/SFX ON");
     });
     this.input.keyboard?.on("keydown-ESC", () => {
-      this.finish("lose");
+      this.togglePause();
+    });
+    this.input.keyboard?.on("keydown-P", () => {
+      this.togglePause();
     });
     if (import.meta.env.DEV) {
       this.input.keyboard?.on("keydown-F10", () => {
+        if (this.paused) {
+          return;
+        }
         this.world.boss.hp = 0;
         this.world.boss.dead = true;
         this.world.ended = "win";
@@ -67,7 +82,7 @@ export class BossFightScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    if (!this.world || this.closing) {
+    if (!this.world || this.closing || this.paused) {
       return;
     }
     const dt = Math.min(delta, 34);
@@ -81,9 +96,35 @@ export class BossFightScene extends Phaser.Scene {
     }
   }
 
+  private togglePause(): void {
+    if (this.closing) {
+      return;
+    }
+    this.setPaused(!this.paused);
+  }
+
+  private setPaused(value: boolean): void {
+    if (this.closing || this.paused === value) {
+      return;
+    }
+    this.paused = value;
+    if (this.paused) {
+      this.physics.pause();
+      this.time.timeScale = 0;
+      this.pauseOverlay.show();
+    } else {
+      this.physics.resume();
+      this.time.timeScale = 1;
+      this.pauseOverlay.hide();
+    }
+  }
+
   private finish(kind: "win" | "lose"): void {
     if (this.closing) {
       return;
+    }
+    if (this.paused) {
+      this.setPaused(false);
     }
     this.closing = true;
     const run = getRun();
