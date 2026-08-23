@@ -1,7 +1,9 @@
 import { defineConfig } from "vite";
 
+const isGitHubPages = process.env.GITHUB_PAGES === "true";
+
 export default defineConfig({
-  base: "./",
+  base: isGitHubPages ? "/eight-bit-raid/" : "./",
   server: {
     port: 5173,
     host: true,

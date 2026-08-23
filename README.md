@@ -11,6 +11,12 @@ npm run dev
 
 브라우저에서 `http://localhost:5173` 을 엽니다.
 
+## 온라인 플레이 (PC 꺼져 있어도 접속 가능)
+
+https://kkimKang.github.io/eight-bit-raid/
+
+GitHub Pages로 배포됩니다. `main` 브랜치에 push하면 자동으로 갱신됩니다.
+
 ## 조작 (1P)
 
 - 이동: 방향키
