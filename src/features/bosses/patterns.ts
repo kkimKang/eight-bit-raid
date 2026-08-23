@@ -734,8 +734,9 @@ const ultimates: Record<BossId, (world: RaidWorld, boss: BossActor) => Pattern> 
       }
     });
   },
-  bubblor: (world, boss) =>
-    timed(7000, (t, w, b) => {
+  bubblor: (world, boss) => {
+    let finaleHit = false;
+    return timed(7000, (t, w, b) => {
       b.sprite.setPosition(320, 80);
       if (t % 280 < 20) {
         w.spawnEnemyShot({
@@ -749,10 +750,14 @@ const ultimates: Record<BossId, (world: RaidWorld, boss: BossActor) => Pattern> 
           lifespan: 4000,
         });
       }
-      if (t > 6600 && t < 6640) {
+      if (!finaleHit && t >= 6600) {
+        finaleHit = true;
         w.flashDanger();
+        const blastRadius = 96;
         for (const p of w.living()) {
-          p.hurt(4, w);
+          if (Phaser.Math.Distance.Between(p.x, p.y, b.x, b.y) < blastRadius) {
+            p.hurt(4, w);
+          }
         }
       }
     }, (w) => {
@@ -760,7 +765,8 @@ const ultimates: Record<BossId, (world: RaidWorld, boss: BossActor) => Pattern> 
         const bang = w.scene.add.image(320, 80, "bang").setScale(2);
         w.scene.time.delayedCall(300, () => bang.destroy());
       });
-    }),
+    });
+  },
   bombit: (world, boss) => {
     let left = 0;
     let right = WIDTH;
