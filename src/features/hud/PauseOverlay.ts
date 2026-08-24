@@ -11,6 +11,7 @@ export class PauseOverlay {
     scene: Phaser.Scene,
     onResume: () => void,
     onSave: () => void,
+    onLoad: () => void,
     onForfeit: () => void,
   ) {
     this.root = scene.add.container(0, 0).setDepth(DEPTH).setVisible(false);
@@ -21,33 +22,39 @@ export class PauseOverlay {
     this.root.add(blocker);
 
     const panel = scene.add
-      .rectangle(WIDTH / 2, HEIGHT / 2, 280, 220, 0x1a1420, 0.95)
+      .rectangle(WIDTH / 2, HEIGHT / 2, 280, 260, 0x1a1420, 0.95)
       .setStrokeStyle(2, 0xffd24a, 0.8);
     this.root.add(panel);
 
-    const title = addTitle(scene, WIDTH / 2, HEIGHT / 2 - 78, "일시정지", "24px");
+    const title = addTitle(scene, WIDTH / 2, HEIGHT / 2 - 96, "일시정지", "24px");
     this.root.add(title);
 
-    const resumeBtn = addButton(scene, WIDTH / 2, HEIGHT / 2 - 32, "[ 계속 ]", onResume, {
+    const resumeBtn = addButton(scene, WIDTH / 2, HEIGHT / 2 - 44, "[ 계속 ]", onResume, {
       fontSize: "18px",
       color: "#5ee0a0",
     }).setOrigin(0.5);
     this.root.add(resumeBtn);
 
-    const saveBtn = addButton(scene, WIDTH / 2, HEIGHT / 2 + 4, "[ 저장하기 ]", onSave, {
+    const saveBtn = addButton(scene, WIDTH / 2, HEIGHT / 2 - 8, "[ 저장하기 ]", onSave, {
       fontSize: "16px",
       color: "#ffd24a",
     }).setOrigin(0.5);
     this.root.add(saveBtn);
 
-    const forfeitBtn = addButton(scene, WIDTH / 2, HEIGHT / 2 + 40, "[ 포기 ]", onForfeit, {
+    const loadBtn = addButton(scene, WIDTH / 2, HEIGHT / 2 + 28, "[ 불러오기 ]", onLoad, {
+      fontSize: "16px",
+      color: "#7ec8ff",
+    }).setOrigin(0.5);
+    this.root.add(loadBtn);
+
+    const forfeitBtn = addButton(scene, WIDTH / 2, HEIGHT / 2 + 64, "[ 포기 ]", onForfeit, {
       fontSize: "16px",
       color: "#e74c3c",
     }).setOrigin(0.5);
     this.root.add(forfeitBtn);
 
     const hint = scene.add
-      .text(WIDTH / 2, HEIGHT / 2 + 82, "P / ESC", {
+      .text(WIDTH / 2, HEIGHT / 2 + 106, "P / ESC", {
         fontFamily: '"Noto Sans KR", "Malgun Gothic", sans-serif',
         fontSize: "12px",
         color: "#8a8494",

@@ -52,6 +52,7 @@ export class BossFightScene extends Phaser.Scene {
       this,
       () => this.setPaused(false),
       () => this.openSaveSlots(),
+      () => this.openLoadSlots(),
       () => this.finish("lose"),
     );
     this.closing = false;
@@ -127,11 +128,22 @@ export class BossFightScene extends Phaser.Scene {
       return;
     }
     const fight = this.world.captureFight();
+    this.openSlotScene("save", fight);
+  }
+
+  private openLoadSlots(): void {
+    if (this.closing || !this.paused) {
+      return;
+    }
+    this.openSlotScene("load");
+  }
+
+  private openSlotScene(mode: "save" | "load", fight?: ReturnType<RaidWorld["captureFight"]>): void {
     this.scene.launch("SaveSlotScene", {
-      mode: "save",
+      mode,
       returnScene: "BossFightScene",
       overlay: true,
-      fight,
+      fight: fight ?? null,
     });
     this.scene.pause();
   }
