@@ -4,11 +4,13 @@ import { makePlayer } from "../../../features/combat/PlayerActor";
 import { RaidWorld } from "../../../features/combat/RaidWorld";
 import { FightHud } from "../../../features/hud/FightHud";
 import { PauseOverlay } from "../../../features/hud/PauseOverlay";
+import { SaveSlotPanel } from "../../../features/hud/SaveSlotPanel";
 import { TouchControls } from "../../../features/hud/TouchControls";
 import { audio } from "../../../shared/audio";
 import { isHandheld } from "../../../shared/device";
 import { InputHub } from "../../../shared/input";
 import { currentBossId, getRun } from "../../../shared/session";
+import { takePendingFight } from "../../../shared/saveSlots";
 import { addButton, addText, fillBg } from "../../../shared/ui";
 import { rankForDeaths } from "../../../config/upgrades";
 
@@ -17,6 +19,7 @@ export class BossFightScene extends Phaser.Scene {
   private inputHub!: InputHub;
   private hud!: FightHud;
   private pauseOverlay!: PauseOverlay;
+  private saveSlots!: SaveSlotPanel;
   private closing = false;
   private paused = false;
 
@@ -29,22 +32,31 @@ export class BossFightScene extends Phaser.Scene {
     fillBg(this, 0x161422);
     this.add.rectangle(320, 344, 640, 32, 0x0c0c14, 0.5);
     const run = getRun();
-    run.roundDeaths = 0;
-    run.fightStartedAt = this.time.now;
+    const fightSnap = takePendingFight();
+    if (!fightSnap) {
+      run.roundDeaths = 0;
+      run.fightStartedAt = this.time.now;
+    }
     this.physics.world.setBounds(0, -24, WIDTH, HEIGHT + 96);
     this.world = new RaidWorld(this, run.difficulty, run.players.length, currentBossId());
     const players = run.players.map((p, i) =>
       makePlayer(this, 120 + i * 40, 300, i, p.characterId, p.upgrades),
     );
     this.world.attachPlayers(players);
+    if (fightSnap) {
+      this.world.applyFight(fightSnap);
+      run.roundDeaths = this.world.roundDeaths;
+    }
     const touch = isHandheld() ? new TouchControls(this) : undefined;
     this.inputHub = new InputHub(this, touch);
     this.hud = new FightHud(this, this.world);
     this.pauseOverlay = new PauseOverlay(
       this,
       () => this.setPaused(false),
+      () => this.openSaveSlots(),
       () => this.finish("lose"),
     );
+    this.saveSlots = new SaveSlotPanel(this);
     this.closing = false;
     this.paused = false;
 
@@ -64,19 +76,30 @@ export class BossFightScene extends Phaser.Scene {
       this.world.banner(muted ? "MUTE" : "BGM/SFX ON");
     });
     this.input.keyboard?.on("keydown-ESC", () => {
+      if (this.saveSlots.isVisible()) {
+        this.saveSlots.hide();
+        return;
+      }
       this.togglePause();
     });
     this.input.keyboard?.on("keydown-P", () => {
+      if (this.saveSlots.isVisible()) {
+        this.saveSlots.hide();
+        return;
+      }
       this.togglePause();
     });
+    this.input.keyboard?.on("keydown-ONE", () => this.saveSlots.pickByNumber(1));
+    this.input.keyboard?.on("keydown-TWO", () => this.saveSlots.pickByNumber(2));
+    this.input.keyboard?.on("keydown-THREE", () => this.saveSlots.pickByNumber(3));
+    this.input.keyboard?.on("keydown-FOUR", () => this.saveSlots.pickByNumber(4));
+    this.input.keyboard?.on("keydown-FIVE", () => this.saveSlots.pickByNumber(5));
     if (import.meta.env.DEV) {
       this.input.keyboard?.on("keydown-F10", () => {
         if (this.paused) {
           return;
         }
-        this.world.boss.hp = 0;
-        this.world.boss.dead = true;
-        this.world.ended = "win";
+        this.world.defeatBoss();
       });
     }
   }
@@ -116,7 +139,17 @@ export class BossFightScene extends Phaser.Scene {
       this.physics.resume();
       this.time.timeScale = 1;
       this.pauseOverlay.hide();
+      this.saveSlots.hide();
     }
+  }
+
+  private openSaveSlots(): void {
+    if (this.closing || !this.paused) {
+      return;
+    }
+    this.saveSlots.open("save", {
+      captureFight: () => this.world.captureFight(),
+    });
   }
 
   private finish(kind: "win" | "lose"): void {

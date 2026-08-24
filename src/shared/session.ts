@@ -56,6 +56,10 @@ export function setRun(next: RunState): void {
   run = next;
 }
 
+export function cloneRun(state: RunState): RunState {
+  return JSON.parse(JSON.stringify(state)) as RunState;
+}
+
 export function resetRun(difficulty: DifficultyId): void {
   run = createRun(difficulty);
 }

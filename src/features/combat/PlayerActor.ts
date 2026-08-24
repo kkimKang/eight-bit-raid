@@ -250,6 +250,49 @@ export class PlayerActor {
     this.cdS = Math.max(0, this.cdS - ms);
     this.cdD = Math.max(0, this.cdD - ms);
   }
+
+  applyCombatSave(snap: {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    hearts: number;
+    mana: number;
+    facing: number;
+    dead: boolean;
+    cdC: number;
+    cdS: number;
+    cdD: number;
+  }, now: number): void {
+    this.hearts = Phaser.Math.Clamp(snap.hearts, 0, this.maxHearts);
+    this.dead = snap.dead || this.hearts <= 0;
+    this.mana = Phaser.Math.Clamp(snap.mana, 0, PLAYER_MANA_MAX);
+    this.facing = snap.facing < 0 ? -1 : 1;
+    this.cdC = Math.max(0, snap.cdC);
+    this.cdS = Math.max(0, snap.cdS);
+    this.cdD = Math.max(0, snap.cdD);
+    this.invulnUntil = now + HIT_IFRAME_MS;
+    this.iframeUntil = 0;
+    this.stunUntil = 0;
+    this.hookUntil = 0;
+    this.slidingUntil = 0;
+    const x = Phaser.Math.Clamp(snap.x, 8, 632);
+    const y = Phaser.Math.Clamp(snap.y, -16, 340);
+    this.sprite.setPosition(x, y);
+    this.sprite.setFlipX(this.facing < 0);
+    this.body.reset(x, y);
+    if (this.dead) {
+      this.body.setVelocity(0, 0);
+      this.sprite.setTexture("tomb");
+      this.sprite.setTint(0x8a8494);
+      this.sprite.setAlpha(1);
+      return;
+    }
+    this.body.setVelocity(snap.vx, snap.vy);
+    this.sprite.setTexture("player");
+    this.sprite.setTint(this.kit.color);
+    this.applyEnlargeVisual(now);
+  }
 }
 
 function dmg(player: PlayerActor, world: CombatWorld, base: number): number {

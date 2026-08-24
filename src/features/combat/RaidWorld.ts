@@ -4,6 +4,7 @@ import { PLAYER_HP_SCALE, difficultyDef, type DifficultyId } from "../../config/
 import { audio } from "../../shared/audio";
 import type { DamageType, PlatformRect } from "../../shared/types";
 import { addText } from "../../shared/ui";
+import type { FightSnapshot } from "../../shared/saveSlots";
 import { bossById } from "../bosses/roster";
 import { BossActor } from "../bosses/BossActor";
 import { PlayerActor } from "./PlayerActor";
@@ -161,14 +162,23 @@ export class RaidWorld implements CombatWorld {
       this.retireShot(s);
       return;
     }
-    if (this.boss.invuln || this.boss.dead) {
+    const dtype = (s.getData("damageType") as DamageType) || "physical";
+    const raw = Number(s.getData("damage") ?? 0);
+    const resist = this.boss.resist(dtype);
+    const dealt = Math.max(1, raw * (1 - resist));
+    if (this.boss.dead) {
       if (!s.getData("pierce")) {
         this.retireShot(s);
       }
       return;
     }
-    const dtype = (s.getData("damageType") as DamageType) || "physical";
-    this.damageBoss(Number(s.getData("damage") ?? 0), dtype, owner);
+    if (this.boss.invuln && this.boss.hp - dealt > 0) {
+      if (!s.getData("pierce")) {
+        this.retireShot(s);
+      }
+      return;
+    }
+    this.damageBoss(raw, dtype, owner);
     if (!s.getData("pierce")) {
       this.retireShot(s);
     }
@@ -258,6 +268,68 @@ export class RaidWorld implements CombatWorld {
     this.boss.sprite.setPosition(320, 260);
     this.boss.sprite.setScale(1);
     this.boss.sprite.setVisible(true);
+  }
+
+  captureFight(): FightSnapshot {
+    return {
+      elapsed: this.elapsed,
+      roundDeaths: this.roundDeaths,
+      timerLeft: this.timerLeft,
+      players: this.players.map((p) => ({
+        x: p.x,
+        y: p.y,
+        vx: p.body.velocity.x,
+        vy: p.body.velocity.y,
+        hearts: p.hearts,
+        mana: p.mana,
+        facing: p.facing,
+        dead: p.dead,
+        cdC: p.cdC,
+        cdS: p.cdS,
+        cdD: p.cdD,
+      })),
+      boss: {
+        x: this.boss.x,
+        y: this.boss.y,
+        hp: this.boss.hp,
+        mana: this.boss.mana,
+        facing: this.boss.facing,
+      },
+    };
+  }
+
+  applyFight(snap: FightSnapshot): void {
+    if (this.boss.inUltimate) {
+      this.boss.interruptPattern();
+    }
+    this.restoreLayout();
+    this.elapsed = Math.max(0, snap.elapsed);
+    this.roundDeaths = Math.max(0, Math.floor(snap.roundDeaths));
+    this.timerLeft = snap.timerLeft;
+    this.boss.hp = Phaser.Math.Clamp(snap.boss.hp, 0.01, this.boss.maxHp);
+    this.boss.mana = Phaser.Math.Clamp(snap.boss.mana, 0, this.boss.maxMana);
+    this.boss.dead = false;
+    this.boss.invuln = false;
+    this.boss.inUltimate = false;
+    const bx = Phaser.Math.Clamp(snap.boss.x, 20, WIDTH - 20);
+    const by = Phaser.Math.Clamp(snap.boss.y, 20, HEIGHT - 20);
+    this.boss.sprite.setPosition(bx, by);
+    this.boss.sprite.setScale(1);
+    this.boss.sprite.setVisible(true);
+    this.boss.sprite.setAlpha(1);
+    this.boss.face(bx + (snap.boss.facing < 0 ? -10 : 10));
+    const bossBody = this.boss.sprite.body as Phaser.Physics.Arcade.Body;
+    bossBody.reset(bx, by);
+    snap.players.forEach((pSnap, i) => {
+      const p = this.players[i];
+      if (!p) {
+        return;
+      }
+      p.applyCombatSave(pSnap, this.now);
+      if (p.dead) {
+        this.deadOnce.add(p.slot);
+      }
+    });
   }
 
   snapPlayersToNearestPlatforms(): void {
@@ -354,17 +426,33 @@ export class RaidWorld implements CombatWorld {
   }
 
   damageBoss(amount: number, type: DamageType, slot: number): void {
-    if (this.boss.dead || this.boss.invuln || amount <= 0) {
+    if (this.boss.dead || amount <= 0) {
       return;
     }
     const resist = this.boss.resist(type);
     const dealt = Math.max(1, amount * (1 - resist));
-    this.boss.hp -= dealt;
+    if (this.boss.invuln && this.boss.hp - dealt > 0) {
+      return;
+    }
+    this.boss.hp = Math.max(0, this.boss.hp - dealt);
     this.players[slot] && (this.players[slot].damageDealt += dealt);
     this.boss.flashHit();
-    if (this.boss.hp <= 0) {
-      this.boss.hp = 0;
-      this.boss.dead = true;
+    if (this.boss.hp < 1) {
+      this.defeatBoss();
+    }
+  }
+
+  defeatBoss(): void {
+    if (this.boss.dead) {
+      return;
+    }
+    if (this.boss.inUltimate) {
+      this.restoreLayout();
+    }
+    this.boss.hp = 0;
+    this.boss.dead = true;
+    this.boss.interruptPattern();
+    if (!this.ended) {
       this.ended = "win";
       audio.win();
     }
@@ -696,9 +784,12 @@ export class RaidWorld implements CombatWorld {
         this.timerLeft = -1;
       }
     }
+    if (this.boss.hp < 1 && !this.boss.dead) {
+      this.defeatBoss();
+    }
     this.boss.update(this, dt);
     this.flushRetiredShots();
-    if (this.living().length === 0 && this.elapsed > 400) {
+    if (this.living().length === 0 && this.elapsed > 400 && !this.boss.dead) {
       this.ended = "lose";
     }
   }

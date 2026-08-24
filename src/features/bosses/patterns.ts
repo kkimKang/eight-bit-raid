@@ -259,7 +259,8 @@ function makePattern(id: BossId, name: string, world: RaidWorld, boss: BossActor
   }
 
   if (id === "bombit") {
-    const arm = 48 + (boss.hp < boss.maxHp * 0.5 ? 24 : 0) + (world.difficulty === "impossible" ? 16 : 0);
+    const rangeMul = 0.5;
+    const arm = (48 + (boss.hp < boss.maxHp * 0.5 ? 24 : 0) + (world.difficulty === "impossible" ? 16 : 0)) * rangeMul;
     if (name === "place") {
       return timed(3200, () => undefined, (w, b) => {
         b.sprite.x += b.facing * 40;
@@ -284,7 +285,7 @@ function makePattern(id: BossId, name: string, world: RaidWorld, boss: BossActor
           duration: 900,
           onComplete: () => {
             bomb.destroy();
-            w.stomp(bx, 300, 90, 1.5, stun);
+            w.stomp(bx, 300, 90 * rangeMul, 1.5, stun);
           },
         });
       });
@@ -294,19 +295,19 @@ function makePattern(id: BossId, name: string, world: RaidWorld, boss: BossActor
         w.spawnEnemyShot({
           x: b.x,
           y: b.y,
-          vx: b.facing * 220,
+          vx: b.facing * 220 * rangeMul,
           vy: 0,
           damage: 1,
           damageType: "physical",
           texture: "bomb",
-          lifespan: 1800,
+          lifespan: 1800 * rangeMul,
         });
       });
     }
     return timed(1000, () => undefined, (w) => {
       for (let i = 0; i < 5; i += 1) {
         const x = 60 + i * 120;
-        w.scene.time.delayedCall(i * 120, () => w.beam(x, 300, 40, 40, 1, 180));
+        w.scene.time.delayedCall(i * 120, () => w.beam(x, 300, 40 * rangeMul, 40 * rangeMul, 1, 180));
       }
     });
   }
@@ -768,6 +769,7 @@ const ultimates: Record<BossId, (world: RaidWorld, boss: BossActor) => Pattern> 
     });
   },
   bombit: (world, boss) => {
+    const rangeMul = 0.5;
     let left = 0;
     let right = WIDTH;
     const wallL = world.scene.add.rectangle(10, 180, 20, 360, 0xf4f0e6).setDepth(9);
@@ -782,7 +784,7 @@ const ultimates: Record<BossId, (world: RaidWorld, boss: BossActor) => Pattern> 
       (wallL.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
       (wallR.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
       for (const p of w.living()) {
-        if (p.x < left + 16 || p.x > right - 16) {
+        if (p.x < left + 16 * rangeMul || p.x > right - 16 * rangeMul) {
           p.hurt(99, w);
         }
       }

@@ -101,7 +101,10 @@ export class BossActor {
 
   update(world: RaidWorld, dt: number): void {
     this.applyHitFlash();
-    if (this.dead) {
+    if (!this.dead && this.hp <= 0) {
+      world.defeatBoss();
+    }
+    if (this.dead || this.hp <= 0) {
       this.sprite.setAlpha(0.35);
       return;
     }
@@ -132,6 +135,10 @@ export class BossActor {
       return;
     }
     if (this.mana >= this.maxMana) {
+      if (this.hp <= 0) {
+        world.defeatBoss();
+        return;
+      }
       this.inUltimate = true;
       this.invuln = true;
       this.mana = 0;
@@ -150,5 +157,12 @@ export class BossActor {
     }
     this.timed = true;
     return true;
+  }
+
+  interruptPattern(): void {
+    this.pattern = null;
+    this.inUltimate = false;
+    this.invuln = false;
+    this.wait = 280;
   }
 }

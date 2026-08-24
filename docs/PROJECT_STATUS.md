@@ -1,9 +1,10 @@
 # 8-BIT RAID — Project Status
 
 ## Last Updated
-2026-08-23 09:40
+2026-08-24 18:45
 
 ## Completed Work
+- 세이브/로드: 일시정지에 저장하기, 타이틀에 새 시작·불러오기, 슬롯 5개. 전투 저장 시 HP·위치까지 복원
 - GitHub Pages 상시 배포 완료: https://kkimkang.github.io/eight-bit-raid/ (`main` push 시 Actions 자동 배포, PC 꺼져 있어도 접속 가능)
 - 저장소를 public으로 전환하고 `main` 브랜치·Pages 배포 브랜치 정책 설정
 - 같은 와이파이가 아니어도 접속할 수 있게 Cloudflare Tunnel 공개 URL 지원 (`npm run share`)
@@ -30,10 +31,10 @@
 
 ## Current Technical State
 - 엔트리: [src/main.ts](src/main.ts), 게임 부트: [src/apps/game/createGame.ts](src/apps/game/createGame.ts)
-- 세션 상태: [src/shared/session.ts](src/shared/session.ts)
+- 세션 상태: [src/shared/session.ts](src/shared/session.ts), 세이브 슬롯: [src/shared/saveSlots.ts](src/shared/saveSlots.ts)
 - 전투 월드: [src/features/combat/RaidWorld.ts](src/features/combat/RaidWorld.ts)
 - 보스 패턴: [src/features/bosses/patterns.ts](src/features/bosses/patterns.ts)
-- 오리지널 픽셀 아트/처프 SFX, 서버 없음. 클리어 기록만 `localStorage`
+- 오리지널 픽셀 아트/처프 SFX, 서버 없음. 클리어 기록과 세이브 슬롯 5개는 `localStorage`
 - 저작권: 원작 유즈맵의 역할/루프만 호러지. 타사 IP 이름·도트·BGM 미사용
 
 ## Next Steps
