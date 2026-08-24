@@ -4,7 +4,6 @@ import { makePlayer } from "../../../features/combat/PlayerActor";
 import { RaidWorld } from "../../../features/combat/RaidWorld";
 import { FightHud } from "../../../features/hud/FightHud";
 import { PauseOverlay } from "../../../features/hud/PauseOverlay";
-import { SaveSlotPanel } from "../../../features/hud/SaveSlotPanel";
 import { TouchControls } from "../../../features/hud/TouchControls";
 import { audio } from "../../../shared/audio";
 import { isHandheld } from "../../../shared/device";
@@ -19,7 +18,6 @@ export class BossFightScene extends Phaser.Scene {
   private inputHub!: InputHub;
   private hud!: FightHud;
   private pauseOverlay!: PauseOverlay;
-  private saveSlots!: SaveSlotPanel;
   private closing = false;
   private paused = false;
 
@@ -56,7 +54,6 @@ export class BossFightScene extends Phaser.Scene {
       () => this.openSaveSlots(),
       () => this.finish("lose"),
     );
-    this.saveSlots = new SaveSlotPanel(this);
     this.closing = false;
     this.paused = false;
 
@@ -75,25 +72,8 @@ export class BossFightScene extends Phaser.Scene {
       const muted = audio.toggleMute();
       this.world.banner(muted ? "MUTE" : "BGM/SFX ON");
     });
-    this.input.keyboard?.on("keydown-ESC", () => {
-      if (this.saveSlots.isVisible()) {
-        this.saveSlots.hide();
-        return;
-      }
-      this.togglePause();
-    });
-    this.input.keyboard?.on("keydown-P", () => {
-      if (this.saveSlots.isVisible()) {
-        this.saveSlots.hide();
-        return;
-      }
-      this.togglePause();
-    });
-    this.input.keyboard?.on("keydown-ONE", () => this.saveSlots.pickByNumber(1));
-    this.input.keyboard?.on("keydown-TWO", () => this.saveSlots.pickByNumber(2));
-    this.input.keyboard?.on("keydown-THREE", () => this.saveSlots.pickByNumber(3));
-    this.input.keyboard?.on("keydown-FOUR", () => this.saveSlots.pickByNumber(4));
-    this.input.keyboard?.on("keydown-FIVE", () => this.saveSlots.pickByNumber(5));
+    this.input.keyboard?.on("keydown-ESC", () => this.togglePause());
+    this.input.keyboard?.on("keydown-P", () => this.togglePause());
     if (import.meta.env.DEV) {
       this.input.keyboard?.on("keydown-F10", () => {
         if (this.paused) {
@@ -139,7 +119,6 @@ export class BossFightScene extends Phaser.Scene {
       this.physics.resume();
       this.time.timeScale = 1;
       this.pauseOverlay.hide();
-      this.saveSlots.hide();
     }
   }
 
@@ -147,9 +126,14 @@ export class BossFightScene extends Phaser.Scene {
     if (this.closing || !this.paused) {
       return;
     }
-    this.saveSlots.open("save", {
-      captureFight: () => this.world.captureFight(),
+    const fight = this.world.captureFight();
+    this.scene.launch("SaveSlotScene", {
+      mode: "save",
+      returnScene: "BossFightScene",
+      overlay: true,
+      fight,
     });
+    this.scene.pause();
   }
 
   private finish(kind: "win" | "lose"): void {

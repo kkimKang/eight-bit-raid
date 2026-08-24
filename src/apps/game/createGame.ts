@@ -7,6 +7,7 @@ import { CharacterSelectScene } from "./scenes/CharacterSelectScene";
 import { DifficultyScene } from "./scenes/DifficultyScene";
 import { LobbyShopScene } from "./scenes/LobbyShopScene";
 import { ResultScene } from "./scenes/ResultScene";
+import { SaveSlotScene } from "./scenes/SaveSlotScene";
 import { TitleScene } from "./scenes/TitleScene";
 
 export function createGame(parent: string | HTMLElement): Phaser.Game {
@@ -45,6 +46,7 @@ export function createGame(parent: string | HTMLElement): Phaser.Game {
     scene: [
       BootScene,
       TitleScene,
+      SaveSlotScene,
       DifficultyScene,
       CharacterSelectScene,
       LobbyShopScene,
