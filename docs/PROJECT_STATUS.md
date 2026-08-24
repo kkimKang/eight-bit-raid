@@ -1,10 +1,10 @@
 # 8-BIT RAID — Project Status
 
 ## Last Updated
-2026-08-24 19:30
+2026-08-24 20:35
 
 ## Completed Work
-- 저장 슬롯 UI를 팝업 패널에서 전용 `SaveSlotScene`으로 변경 (타이틀 불러오기·전투 중 저장)
+- 일시정지에서 불러오기: 저장 슬롯 화면을 일시정지 앞에 띄우고, 데이터가 있는 슬롯을 누르면 해당 세이브를 복원
 - 세이브/로드: 일시정지에 저장하기, 타이틀에 새 시작·불러오기, 슬롯 5개. 전투 저장 시 HP·위치까지 복원
 - GitHub Pages 상시 배포 완료: https://kkimkang.github.io/eight-bit-raid/ (`main` push 시 Actions 자동 배포, PC 꺼져 있어도 접속 가능)
 - 저장소를 public으로 전환하고 `main` 브랜치·Pages 배포 브랜치 정책 설정

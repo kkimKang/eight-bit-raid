@@ -62,13 +62,10 @@ export class SaveSlotScene extends Phaser.Scene {
 
   create(): void {
     this.input.keyboard?.removeAllListeners();
-    if (!this.overlay) {
-      fillBg(this);
-      for (let i = 0; i < 18; i += 1) {
-        this.add.image(20 + (i * 53) % 640, 40 + (i * 37) % 280, "star").setAlpha(0.12).setScale(0.7);
-      }
-    } else {
-      this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x000000, 0.72);
+    this.scene.bringToTop();
+    fillBg(this);
+    for (let i = 0; i < 18; i += 1) {
+      this.add.image(20 + (i * 53) % 640, 40 + (i * 37) % 280, "star").setAlpha(0.12).setScale(0.7);
     }
 
     this.add
@@ -161,6 +158,9 @@ export class SaveSlotScene extends Phaser.Scene {
     }
     audio.buy();
     setRun(cloneRun(slot.run));
+    if (this.overlay) {
+      this.scene.stop(this.returnScene);
+    }
     if (slot.fight) {
       setPendingFight(slot.fight);
       this.scene.start("BossFightScene");
@@ -171,8 +171,8 @@ export class SaveSlotScene extends Phaser.Scene {
 
   private goBack(): void {
     if (this.overlay) {
+      this.scene.wake(this.returnScene);
       this.scene.stop();
-      this.scene.resume(this.returnScene);
       return;
     }
     this.scene.start(this.returnScene);

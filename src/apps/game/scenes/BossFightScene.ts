@@ -73,6 +73,10 @@ export class BossFightScene extends Phaser.Scene {
       const muted = audio.toggleMute();
       this.world.banner(muted ? "MUTE" : "BGM/SFX ON");
     });
+    this.events.on(Phaser.Scenes.Events.WAKE, this.onFightResume, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off(Phaser.Scenes.Events.WAKE, this.onFightResume, this);
+    });
     this.input.keyboard?.on("keydown-ESC", () => this.togglePause());
     this.input.keyboard?.on("keydown-P", () => this.togglePause());
     if (import.meta.env.DEV) {
@@ -101,7 +105,7 @@ export class BossFightScene extends Phaser.Scene {
   }
 
   private togglePause(): void {
-    if (this.closing) {
+    if (this.closing || this.scene.isActive("SaveSlotScene")) {
       return;
     }
     this.setPaused(!this.paused);
@@ -138,14 +142,23 @@ export class BossFightScene extends Phaser.Scene {
     this.openSlotScene("load");
   }
 
+  private onFightResume(): void {
+    if (this.closing || !this.paused) {
+      return;
+    }
+    this.pauseOverlay.show();
+  }
+
   private openSlotScene(mode: "save" | "load", fight?: ReturnType<RaidWorld["captureFight"]>): void {
+    this.pauseOverlay.hide();
     this.scene.launch("SaveSlotScene", {
       mode,
       returnScene: "BossFightScene",
       overlay: true,
       fight: fight ?? null,
     });
-    this.scene.pause();
+    this.scene.bringToTop("SaveSlotScene");
+    this.scene.sleep();
   }
 
   private finish(kind: "win" | "lose"): void {

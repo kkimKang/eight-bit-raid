@@ -46,11 +46,11 @@ export function createGame(parent: string | HTMLElement): Phaser.Game {
     scene: [
       BootScene,
       TitleScene,
-      SaveSlotScene,
       DifficultyScene,
       CharacterSelectScene,
       LobbyShopScene,
       BossFightScene,
+      SaveSlotScene,
       ResultScene,
       AllClearScene,
     ],

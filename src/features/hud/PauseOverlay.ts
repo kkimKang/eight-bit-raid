@@ -65,10 +65,22 @@ export class PauseOverlay {
 
   show(): void {
     this.root.setVisible(true);
+    this.setInputEnabled(true);
   }
 
   hide(): void {
+    this.setInputEnabled(false);
     this.root.setVisible(false);
+  }
+
+  setInputEnabled(enabled: boolean): void {
+    this.root.iterate((obj: Phaser.GameObjects.GameObject) => {
+      const input = (obj as Phaser.GameObjects.GameObject & { input?: { enabled: boolean } }).input;
+      if (input) {
+        input.enabled = enabled;
+      }
+      return true;
+    });
   }
 
   isVisible(): boolean {
