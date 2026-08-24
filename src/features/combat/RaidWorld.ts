@@ -330,6 +330,23 @@ export class RaidWorld implements CombatWorld {
         this.deadOnce.add(p.slot);
       }
     });
+    this.checkPartyWipe();
+  }
+
+  private checkPartyWipe(): void {
+    if (this.ended || this.boss.dead) {
+      return;
+    }
+    if (this.living().length > 0) {
+      return;
+    }
+    if (!this.players.every((p) => p.dead)) {
+      return;
+    }
+    if (this.deadOnce.size < this.players.length) {
+      return;
+    }
+    this.ended = "lose";
   }
 
   snapPlayersToNearestPlatforms(): void {
@@ -789,8 +806,6 @@ export class RaidWorld implements CombatWorld {
     }
     this.boss.update(this, dt);
     this.flushRetiredShots();
-    if (this.living().length === 0 && this.elapsed > 400 && !this.boss.dead) {
-      this.ended = "lose";
-    }
+    this.checkPartyWipe();
   }
 }

@@ -7,15 +7,25 @@ import type { BossId } from "../../shared/types";
 
 export interface Pattern {
   update: (world: RaidWorld, dt: number) => boolean;
+  cleanup?: () => void;
 }
 
 function timed(
   duration: number,
   tick: (t: number, world: RaidWorld, boss: BossActor, dt: number) => void,
   start?: (world: RaidWorld, boss: BossActor) => void,
+  cleanup?: () => void,
 ): Pattern {
   let t = 0;
   let began = false;
+  let cleaned = false;
+  const runCleanup = (): void => {
+    if (cleaned) {
+      return;
+    }
+    cleaned = true;
+    cleanup?.();
+  };
   return {
     update(world, dt) {
       if (!began) {
@@ -24,8 +34,13 @@ function timed(
       }
       t += dt;
       tick(t, world, bossRef, dt);
-      return t >= duration;
+      if (t >= duration) {
+        runCleanup();
+        return true;
+      }
+      return false;
     },
+    cleanup: runCleanup,
   };
 }
 
@@ -239,6 +254,7 @@ function makePattern(id: BossId, name: string, world: RaidWorld, boss: BossActor
     const t = world.pickTarget();
     const tx = t?.x ?? 320;
     const hide = stun;
+    let mark: Phaser.GameObjects.Image | undefined;
     return timed(1200 / speed, (tm, w, b) => {
       if (tm < 500) {
         b.sprite.y -= 4;
@@ -251,10 +267,12 @@ function makePattern(id: BossId, name: string, world: RaidWorld, boss: BossActor
       }
     }, (w, b) => {
       if (!hide) {
-        const m = w.scene.add.image(tx, 40, "bang").setDepth(12);
-        w.scene.time.delayedCall(500, () => m.destroy());
+        mark = w.scene.add.image(tx, 40, "bang").setDepth(12);
       }
       void b;
+    }, () => {
+      mark?.destroy();
+      mark = undefined;
     });
   }
 
@@ -737,6 +755,15 @@ const ultimates: Record<BossId, (world: RaidWorld, boss: BossActor) => Pattern> 
   },
   bubblor: (world, boss) => {
     let finaleHit = false;
+    let bangEvent: Phaser.Time.TimerEvent | undefined;
+    let bangHideEvent: Phaser.Time.TimerEvent | undefined;
+    let bangSprite: Phaser.GameObjects.Image | undefined;
+    const cleanup = (): void => {
+      bangEvent?.remove(false);
+      bangHideEvent?.remove(false);
+      bangSprite?.destroy();
+      bangSprite = undefined;
+    };
     return timed(7000, (t, w, b) => {
       b.sprite.setPosition(320, 80);
       if (t % 280 < 20) {
@@ -762,11 +789,16 @@ const ultimates: Record<BossId, (world: RaidWorld, boss: BossActor) => Pattern> 
         }
       }
     }, (w) => {
-      w.scene.time.delayedCall(6400, () => {
-        const bang = w.scene.add.image(320, 80, "bang").setScale(2);
-        w.scene.time.delayedCall(300, () => bang.destroy());
+      bangEvent = w.scene.time.delayedCall(6400, () => {
+        bangSprite = w.scene.add.image(320, 80, "bang").setScale(2);
+        bangEvent = undefined;
+        bangHideEvent = w.scene.time.delayedCall(300, () => {
+          bangSprite?.destroy();
+          bangSprite = undefined;
+          bangHideEvent = undefined;
+        });
       });
-    });
+    }, cleanup);
   },
   bombit: (world, boss) => {
     const rangeMul = 0.5;

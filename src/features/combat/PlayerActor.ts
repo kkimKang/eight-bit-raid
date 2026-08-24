@@ -96,6 +96,9 @@ export class PlayerActor {
     this.xReady = Math.max(0, this.xReady - dt);
     this.mana = Math.min(PLAYER_MANA_MAX, this.mana + 8 * manaRegenMul(this.upgrades.cdr) * (dt / 1000));
 
+    if (this.hearts <= 0) {
+      this.dead = true;
+    }
     if (this.dead) {
       this.body.setVelocity(0, 0);
       this.sprite.setTexture("tomb");

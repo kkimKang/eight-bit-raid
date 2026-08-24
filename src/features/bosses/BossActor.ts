@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { difficultyDef, type DifficultyId } from "../../config/difficulties";
 import type { DamageType } from "../../shared/types";
 import type { RaidWorld } from "../combat/RaidWorld";
-import { createPattern, createUltimate } from "./patterns";
+import { createPattern, createUltimate, type Pattern } from "./patterns";
 import type { BossDef } from "./roster";
 import { audio } from "../../shared/audio";
 
@@ -23,7 +23,7 @@ export class BossActor {
   counterUntil = 0;
   wait = 900;
   private hitFlashUntil = 0;
-  private pattern: { update: (world: RaidWorld, dt: number) => boolean } | null = null;
+  private pattern: Pattern | null = null;
   private phys: number;
   private mag: number;
   private regen: number;
@@ -160,6 +160,7 @@ export class BossActor {
   }
 
   interruptPattern(): void {
+    this.pattern?.cleanup?.();
     this.pattern = null;
     this.inUltimate = false;
     this.invuln = false;
